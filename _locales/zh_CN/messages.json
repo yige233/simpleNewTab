@@ -1,0 +1,26 @@
+{
+  "appName": { "message": "简单新标签页" },
+  "appAuthor": { "message": "破损的鞘翅" },
+  "appDesc": {
+    "message": "配合随机图片api，实现每次打开新标签页切换壁纸的功能"
+  },
+  "newTabErr": { "message": "加载出错" },
+  "optionPageTitle": { "message": "编辑配置" },
+  "optionShowDescBtn": { "message": "显示说明" },
+  "optionShowBackBtn": { "message": "隐藏说明" },
+  "optionSave": { "message": "检查并保存" },
+  "optionAddPic": { "message": "设置默认壁纸" },
+  "optionAddPicOK": { "message": "成功添加默认壁纸。" },
+  "optionAddPicErr": { "message": "设置默认壁纸失败。" },
+  "optionOpenPic": { "message": "打开默认壁纸" },
+  "optionOpenPicErr": { "message": "打开默认壁纸失败。" },
+  "optionDelPic": { "message": "删除默认壁纸" },
+  "optionDelPicOK": { "message": "成功删除默认壁纸。" },
+  "optionSaveOK": { "message": "保存成功。" },
+  "optionSaveErr": { "message": "保存失败：" },
+  "optionRestore": { "message": "加载默认配置" },
+  "optionShowDesc": {
+    "message": "下面提到的颜色相关的配置项，均使用十六进制颜色。\nbgColor:壁纸尚未加载完成时的背景颜色。\napi:用于获取壁纸图片的网址，如果是数组，扩展将会从数组中的多个api随机选择。\nallowDrag:布尔值（只能是true或false），控制新标签页的壁纸是否能被拖动。\ndragSenstive:控制拖动壁纸的灵敏度，数字越大，灵敏度越低。\nanimation:提供了一些选项，可以控制动画的属性，包括持续时间、延迟、关键帧之间的变化方式。\nkeyframesL:可以定义动画的关键帧。和上面的animation一起，可以自定义壁纸的出现方式。\nnotes:可以在新标签页放置一些便签。按住Ctrl并点击新标签页任意位置即可建立一个便签；按住Shift并点击便签的标题即可删除该便签。可以在配置页修改便签的标题、颜色、透明度、内容文字字号和标题文字颜色。\ndefaultNote:便签的默认样式。包括便签的尺寸、透明度、标题文字颜色、内容文字字号和默认内容。\n关于api：详见https://github.com/yige233/randomPic\n可以选择设置一张默认壁纸，当所有api及必应都无法访问时，就会使用该壁纸。\n关于便签：可以在扩展页的“键盘快捷键”处为新建便签设置快捷键。"
+  },
+  "newTab": { "message": "新标签页" }
+}
