@@ -14,7 +14,8 @@ import {
 class Note {
     //新建一个便签。传入便签的父元素、便签配置和同步对象。
     constructor(container, note, syncWorker) {
-        this.maxHeight = window.innerHeight - 40; //规定便签最大据离顶部多少px
+        this.maxWidth = window.innerWidth - note.size[0]; //规定便签最大据离左部多少px
+        this.maxHeight = window.innerHeight - note.size[1]; //规定便签最大据离顶部多少px
         this.note = note;
         this.syncWorker = syncWorker;
         this.programControl = false;
@@ -22,8 +23,8 @@ class Note {
         #${note.id} {
             width:${note.size[0]}px;
             height:${note.size[1]}px;
-            top:${(note.position[1]<0)?0:(note.position[1]>this.maxHeight)?this.maxHeight:note.position[1]}px;
-            left:${note.position[0]}px;
+            top:${(note.position[1]<0)?5:(note.position[1]>this.maxHeight)?this.maxHeight-5:note.position[1]}px;
+            left:${(note.position[0]<0?5:(note.position[0]>this.maxWidth)?this.maxWidth-5:note.position[0])}px;
             background-color:rgba(255 255 255 / ${note.opacity});
         }
         #${note.id}>div.noteTitle {
