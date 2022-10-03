@@ -1,7 +1,7 @@
 import {
     dom,
     i18n,
-    randomColor,
+    presetColors,
     Drag,
     Db,
     Background,
@@ -89,25 +89,33 @@ class Note {
         document.body.addEventListener("click", e => {
             if (!hotKey.has("Control")) return;
             setTimeout(() => {
-                const title = prompt("输入一个标题吧！", "便签");
-                if (!title) return;
-                const note = {
-                    id: "note" + Math.floor(new Date() / 1e3),
-                    title: title,
-                    color: randomColor()
-                };
-                Object.assign(note, conf.defaultNote);
-                note.position = [e.clientX, e.clientY];
-                create(note);
+                layui.use(() => {
+                    layui.layer.prompt({
+                        value: conf.defaultNote.title,
+                        title: i18n("newTab_requireNoteTitle")
+                    }, (value, index, elem) => {
+                        layer.close(index);
+                        if (!value) return;
+                        const note = {
+                            id: "note" + Math.floor(new Date()),
+                            title: value,
+                            color: presetColors[Math.floor((Math.random() * presetColors.length))],
+                        };
+                        Object.assign(note, conf.defaultNote);
+                        note.position = [e.clientX, e.clientY];
+                        create(note);
+                    });
+                });
+
             }, 10);
         });
         //快捷键新建
         chrome.commands.onCommand.addListener(command => {
             if (command != "newNote") return;
             const note = {
-                id: "note" + Math.floor(new Date() / 1e3),
-                title: "便签",
-                color: randomColor(),
+                id: "note" + Math.floor(new Date()),
+                title: conf.defaultNote.title,
+                color: presetColors[Math.floor((Math.random() * presetColors.length))],
             };
             Object.assign(note, conf.defaultNote);
             create(note);
@@ -215,7 +223,7 @@ const hotKey = new HotKey();
 const currentTab = await chrome.tabs.getCurrent();
 const noteSync = Note.noteSync();
 
-document.head.querySelector("title").innerText = i18n("newTab");
+document.head.querySelector("title").innerText = i18n("newTab_title");
 await new Background(db, document.body, conf).apply();
 Note.loadNotes(conf.notes, noteSync);
 Note.newNoteTrigger(noteSync);

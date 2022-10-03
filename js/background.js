@@ -1,6 +1,7 @@
 import {
     Db,
     Picture,
+    defaultConfig
 } from "./tools.js";
 
 
@@ -37,18 +38,19 @@ class TransportStation {
     };
 };
 
-//在worker之间传递数据
-function passData(data) {
-    return data;
-};
-
 chrome.action.onClicked.addListener(() => {
     chrome.tabs.create({
         url: "../html/options.html"
     });
 });
 
-chrome.alarms.onAlarm.addListener(function (alarm) {
+chrome.runtime.onInstalled.addListener(() => {
+    chrome.tabs.create({
+        url: "https://github.com/yige233/simpleNewTab"
+    });
+});
+
+chrome.alarms.onAlarm.addListener(alarm => {
     console.log("被唤醒", new Date());
 });
 
@@ -56,17 +58,55 @@ chrome.alarms.onAlarm.addListener(function (alarm) {
     const station = new TransportStation();
     await Db.init();
     let caching = false;
-    const db = await new Db().use("Picture");
-    station.manage("noteSync", passData);
+    const db = await new Db().use("Picture", "Config");
+    const db_Config = db.open("Config");
+    const conf = await db_Config.getMutiple(defaultConfig);
+
+    //升级配置
+    (() => {
+        let needUpgrade = false;
+        if (!conf.defaultNote.title) {
+            needUpgrade = true;
+            conf.defaultNote.title = defaultConfig.defaultNote.title;
+        };
+        if (conf.keyframes.length > 0 && !Array.isArray(conf.keyframes[0])) {
+            needUpgrade = true;
+            const keyframesArr = [];
+            for (let keyframe of conf.keyframes) {
+                for (let framename in keyframe) {
+                    const stylesArr = [];
+                    for (let style in keyframe[framename]) stylesArr.push(`${style}:${keyframe[framename][style]};`);
+                    keyframesArr.push([framename, stylesArr]);
+                };
+            };
+            conf.keyframes = keyframesArr;
+        };
+        needUpgrade && db_Config.setMutiple(conf, true);
+    })();
+
+    //同步便签
+    station.manage("noteSync", data => data);
+
     //后台刷新壁纸缓存
-    station.manage("cachePic", async (apis) => {
+    station.manage("cachePic", async apis => {
         if (caching) return false;
         caching = true;
-        const picture = new Picture(apis);
-        const result = await picture.get();
-        console.log("预加载：", result.desc || null);
+        const picture = new Picture();
+        const imageFromApi = await picture.getFromApi(apis);
+        if (imageFromApi.ok) {
+            console.log("预加载：", imageFromApi.message || null);
+            db.open("Picture").set("cachedPic", imageFromApi, true);
+            caching = false;
+            return true;
+        };
+        const imageFromBing = await picture.getFromBing();
+        if (imageFromBing.ok) {
+            console.log("预加载：", imageFromBing.message || null);
+            imageFromBing.ok && db.open("Picture").set("cachedPic", imageFromBing, true);
+            caching = false;
+            return true;
+        };
         caching = false;
-        result.ok && db.open("Picture").set("cachedPic", result, true);
-        return result.ok;
+        return false;
     });
 })();

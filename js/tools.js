@@ -9,11 +9,9 @@ function i18n(content) {
     return chrome.i18n.getMessage(content);
 };
 
-//获取随机的颜色
-function randomColor() {
-    const colorTable = ["#66CCCC", "#CCFF66", "#FF99CC", "#FF9999", "#FFCC99", "#FF6666", "#FFFF66", "#99CC66", "#666699", "#99CC33", "#FF9900", "#FFCC00", "#FF0033", "#FF9966", "#CCFF00", "#CC3399", "#FF6600", "#993366", "#CCCC33", "#666633"];
-    return colorTable[Math.floor((Math.random() * colorTable.length))];
-};
+//预设颜色
+const presetColors = ["#464646", "#66CCCC", "#CCFF66", "#FF99CC", "#FF9999", "#FFCC99", "#FF6666", "#FFFF66", "#99CC66", "#666699", "#99CC33", "#FF9900", "#FFCC00", "#FF0033", "#FF9966", "#CCFF00", "#CC3399", "#FF6600", "#993366", "#CCCC33", "#666633"];
+
 
 //访问indexeddb数据库存储。
 class Db {
@@ -73,7 +71,7 @@ class Table {
             const request = this.db.transaction([this.tableName], 'readwrite').objectStore(this.tableName).get(id);
             request.onerror = e => resolve(null);
             request.onsuccess = e => {
-                if (request.result) return resolve(request.result.data)
+                if (typeof (request.result) != "undefined") return resolve(request.result.data)
                 return resolve(null);
             };
         });
@@ -82,14 +80,14 @@ class Table {
         const result = {};
         for (let key in keys) {
             const res = await this.get(key);
-            result[key] = res || keys[key]
+            result[key] = typeof (res) == "undefined" ? keys[key] : res;
         };
         return result;
     };
     //添加主键为id的数据
     set(id, data = {}, overwrite = false) {
         return new Promise(resolve => {
-            if (!data || !id) return resolve(false);
+            if (typeof (data) === "undefined" || !id) return resolve(false);
             this.get(id).then(() => {
                 if (!overwrite) throw "not allowed to overwrite data";
                 const request = this.db.transaction([this.tableName], 'readwrite').objectStore(this.tableName).put({
@@ -192,51 +190,65 @@ class TransportWorker {
 
 //获取随机图片
 class Picture {
-    constructor(apis = []) { //传入api数组
-        this.apis = Array.isArray(apis) ? apis : [apis];
+    constructor() {};
+
+    //从缓存获取图片
+    getFromCache(db) {
+        return db.get("cachedPic");
     };
-    //随机获取
-    async get() {
-        let [tryCount, maxTryCount] = [0, 1];
-        if (!this.apis.length) {
-            console.log("没有可用的api。");
-            return await this.getBingPic(); //没有api时，使用必应图片
+    //从API获取随机图片
+    async getFromApi(apis = [], maxTryCount = 1) {
+        async function getPicName(api) {
+            try {
+                const controller = new AbortController();
+                const signal = controller.signal;
+                setTimeout(() => controller.abort(), 1000); //控制超时时间
+                const res = await fetch(`${api}random`, {
+                    signal: signal
+                });
+                const resJson = await res.json();
+                return [res.ok, resJson];
+            } catch {
+                return [false, {
+                    message: "网络请求失败或被中断。"
+                }];
+            };
         };
+
+        let tryCount = 0;
+        maxTryCount = maxTryCount < 1 ? 1 : maxTryCount;
+
+        if (!apis.length) {
+            return {
+                ok: false,
+                message: "没有可用的api。"
+            };
+        };
+
         while (tryCount < maxTryCount) {
-            const api = this.apis[Math.floor((Math.random() * this.apis.length))];
-            const [result, json] = await this.getPicName(api);
+            const api = new URL(apis[Math.floor((Math.random() * apis.length))]).toString();
+            const [result, json] = await getPicName(api);
             if (!result) {
                 console.warn("第", tryCount + 1, "次尝试从", api, "获取图片失败:", json.message);
                 tryCount++;
                 continue;
             };
-            const pic = await fetch(`${api}/pic?name=${json.pic}`);
+            const pic = await fetch(`${api}pic?name=${json.pic}`);
             return {
                 ok: true,
-                desc: json.pic + " 来自 " + api,
+                message: json.pic + " 来自 " + api,
+                type: "api",
                 pic: await pic.blob()
             };
         };
-        console.warn("尝试了", maxTryCount, "次获取图片，均失败。"); //多次获取api图片失败，使用必应图片
-        return await this.getBingPic();
-    };
-    async getPicName(api) {
-        try {
-            const controller = new AbortController();
-            const signal = controller.signal;
-            setTimeout(() => controller.abort(), 1000); //控制超时时间
-            const res = await fetch(`${api}/random`, {
-                signal: signal
-            });
-            const resJson = await res.json();
-            return [res.ok, resJson];
-        } catch {
-            return [false, {
-                message: "网络请求失败或被中断。"
-            }];
+        return {
+            ok: false,
+            message: "尝试了" + maxTryCount + "次获取图片，均失败。"
         };
     };
-    async getBingPic() {
+
+    //从Bing获取图片
+    async getFromBing() {
         try {
             const controller = new AbortController();
             const signal = controller.signal;
@@ -248,14 +260,21 @@ class Picture {
             const pic = await fetch(`https://cn.bing.com${json.images[0].url}`);
             return {
                 ok: true,
-                desc: json.images[0].copyright + " 来自 cn.bing.com",
+                message: json.images[0].copyright + " 来自 cn.bing.com",
+                type: "bing",
                 pic: await pic.blob()
             };
         } catch (err) {
             return {
-                ok: false
+                ok: false,
+                message: err.message
             };
         };
+    };
+
+    //从默认壁纸获取图片
+    getFromDefault(db) {
+        return db.get("defaultPic");
     };
 };
 
@@ -266,7 +285,6 @@ class Background { //传入数据库，背景的容器元素，背景相关的�
         this.conf = conf;
         this.db = db.open("Picture")
         this.setStyle();
-        this.picture = new Picture(conf.api);
         this.worker = new TransportWorker("cachePic"); //用于通知后台刷新缓存
         this.worker.handleWith(res => {
             console.log("后台缓存图片结果：", res);
@@ -288,23 +306,37 @@ class Background { //传入数据库，背景的容器元素，背景相关的�
     };
     //获取图片
     async getPic() {
-        const res_cache = await this.db.get("cachedPic"); //是否存在缓存图片
-        if (res_cache && res_cache.ok) { //存在缓存图片，将cache设置为true，并后台设置新图片为缓存
-            this.worker.post(this.conf.api);
-            console.log("从缓存中加载：", res_cache.desc);
-            return res_cache;
+        const Pic = new Picture();
+        const cache = await Pic.getFromCache(this.db); //是否存在缓存图片
+        if (cache && cache.ok) { //存在缓存
+            if (cache.type == "api" || (this.conf.preferBing && cache.type == "bing")) { //缓存类型是api，或者缓存类型是bing且优先bing
+                console.log("从缓存中加载：", cache.message);
+                return cache;
+            };
         };
-        const res_getPic = await this.picture.get(); //不存在缓存图片，直接从api获取图片，并后台缓存新图片
-        if (res_getPic && res_getPic.ok) {
-            console.log("从api获取：", res_getPic.desc);
-            this.worker.post(this.conf.api);
-            return res_getPic;
+        const picFromApi = await Pic.getFromApi(this.conf.api); //不存在缓存图片，直接从api获取图片，并后台缓存新图片
+        if (picFromApi && picFromApi.ok) {
+            console.log("从api获取：", picFromApi.message);
+            return picFromApi;
         };
-        const res_defaultPic = await this.db.get("defaultPic"); //获取新图片失败，如果存在默认图片则使用默认图片
-        this.worker.post(this.conf.api);
-        if (res_defaultPic && res_defaultPic.ok) {
-            console.log("用户设置的默认图片:", res_defaultPic.desc);
-            return res_defaultPic;
+        const picFromBing = await Pic.getFromBing() || {
+            ok: false
+        }; //从API获取图片失败，获取bing图片
+        const defaultPic = await Pic.getFromDefault(this.db) || {
+            ok: false
+        }; ///从API获取新图片失败，获取默认图片
+        const picOK = [picFromBing, defaultPic].filter(i => i.ok); //筛选成功获取到图片的源
+        if (picOK.length == 2) { //如果两个都获取成功，根据preferBing来判断使用哪个
+            if (this.conf.preferBing) {
+                console.log("从Bing获取:", picFromBing.message);
+                return picFromBing;
+            };
+            console.log("用户设置的默认图片:", defaultPic.message);
+            return defaultPic;
+        };
+        if (picOK.length == 1) { //只有一个获取成功，只能用它了
+            console.log(picOK[0].type == "bing" ? "从Bing获取:" : "用户设置的默认图片:", picOK[0].message);
+            return picOK[0];
         };
         return {
             ok: false
@@ -316,31 +348,34 @@ class Background { //传入数据库，背景的容器元素，背景相关的�
             ok,
             pic
         } = await this.getPic();
-        if (!ok) return;
-        const background = dom(`<div class="wallpaper appear" style='background-image: url("${URL.createObjectURL(pic)}");z-index:-999;'></div>`);
+        this.worker.post(this.conf.api);
+        if (!ok) { //获取所有图片源都失败，使用浏览器默认新标签页
+            chrome.tabs.create({
+                url: "chrome-search://local-ntp/local-ntp.html"
+            });
+            return window.close();
+        };
+        const background = dom(`<div class="wallpaper appear hide" style='background-image: url("${URL.createObjectURL(pic)}");z-index:-999;'></div>`);
         this.container.append(background);
         if (this.conf.allowDrag) this.setDrag(background);
         await new Promise(resolve => {
-            background.addEventListener("animationend", () => {
-                background.classList.toggle("appear");
-                resolve();
+            background.addEventListener("animationstart", () => {
+                background.classList.toggle("hide");
             });
+            background.addEventListener("animationend", () => resolve());
         });
     };
     //设置相关样式
     setStyle() {
         const keyframesArr = [];
-        for (let keyframe of this.conf.keyframes) {
-            for (let framename in keyframe) {
-                const stylesArr = [];
-                for (let style in keyframe[framename]) stylesArr.push(`${style}:${keyframe[framename][style]}`);
-                keyframesArr.push(`${framename} {${stylesArr.join(";")}}`);
-            };
+        for (let [name, style] of this.conf.keyframes) {
+            keyframesArr.push(`${name} {${style.join("\n")}}`);
         };
         const style = `<style>
             @keyframes appear {${keyframesArr.join("\n")}}
             body{background-color: ${this.conf.bgColor};}
             .appear {animation: appear ${this.conf.animation.duration} ${this.conf.animation.function} ${this.conf.animation.delay} 1 normal forwards;}
+            .hide {opacity:0}
         </style>`;
         document.head.append(dom(style));
     };
@@ -372,26 +407,21 @@ class HotKey {
 //默认设置
 const defaultConfig = {
     bgColor: '#464646',
-    api: ["http://localhost:3000"],
+    api: ["http://localhost:3000/"],
     allowDrag: true,
+    preferBing: true,
     dragSenstive: 10,
     animation: {
         delay: "0s",
         duration: "0.2s",
         function: "ease-out"
     },
-    keyframes: [{
-            "from": {
-                top: "100%"
-            }
-        },
-        {
-            "to": {
-                top: "0%"
-            }
-        }
+    keyframes: [
+        ["from", ["top:100%;"]],
+        ["to", ["top:0%;"]]
     ],
     defaultNote: {
+        title: i18n("conf_defaultNote_defaultTitle_value"),
         size: [300, 300],
         position: [300, 300],
         fontColor: "#000",
@@ -405,12 +435,12 @@ const defaultConfig = {
 export {
     dom,
     i18n,
-    randomColor,
     Drag,
     TransportWorker,
     Db,
     Picture,
     Background,
     HotKey,
+    presetColors,
     defaultConfig,
 }
