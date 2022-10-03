@@ -95,7 +95,7 @@
   "conf_defaultPic_delete_ok": { "message": "成功删除壁纸。" },
   "conf_preferBing_title": { "message": "除API外优先使用的壁纸" },
   "conf_preferBing_desc": {
-    "message": "设置当所有API都无法访问时，优先使用的壁纸（必应或者自定义）。如果两者都无法使用，会使用系统默认新标签页。"
+    "message": "设置当所有API都无法访问时，优先使用的壁纸源。如果其中有一者无法使用就会使用另一者。如果两者都无法使用，会使用系统默认新标签页。"
   },
   "conf_preferBing_current": { "message": "当前的状态" },
   "conf_preferBing_bing": { "message": "必应壁纸" },
