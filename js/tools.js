@@ -409,7 +409,7 @@ const defaultConfig = {
     bgColor: '#464646',
     api: ["http://localhost:3000/"],
     allowDrag: true,
-    preferBing: true,
+    preferBing: false,
     dragSenstive: 10,
     animation: {
         delay: "0s",
