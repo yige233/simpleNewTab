@@ -39,7 +39,7 @@ class Note {
             font-size: ${note.fontSize};
         }
     </style>`);
-        this.noteContainer = dom(`<div class="note noteappear" id="${note.id}"><div class="noteTitle"></div><textarea class="noteContent">${note.content}</textarea></div>`);
+        this.noteContainer = dom(`<div class="note" id="${note.id}"><div class="noteTitle"></div><textarea class="noteContent">${note.content}</textarea></div>`);
         container.append(this.noteContainer);
         document.head.append(style);
         const title = this.noteContainer.querySelector(".noteTitle");

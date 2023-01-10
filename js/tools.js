@@ -12,6 +12,8 @@ function i18n(content) {
 //预设颜色
 const presetColors = ["#464646", "#66CCCC", "#CCFF66", "#FF99CC", "#FF9999", "#FFCC99", "#FF6666", "#FFFF66", "#99CC66", "#666699", "#99CC33", "#FF9900", "#FFCC00", "#FF0033", "#FF9966", "#CCFF00", "#CC3399", "#FF6600", "#993366", "#CCCC33", "#666633"];
 
+//数据库版本
+const dbVersion = 2;
 
 //访问indexeddb数据库存储。
 class Db {
@@ -20,7 +22,7 @@ class Db {
     constructor() {};
     use(...tables) {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open("SimpleNewTab"); //数据库名写死
+            const request = indexedDB.open("SimpleNewTab", dbVersion); //数据库名写死
             request.onerror = err => {
                 console.warn("打开数据库失败", err);
                 reject(false);
@@ -53,7 +55,7 @@ class Db {
         });
     };
     static async init() {
-        const db = await new Db().use("Picture", "Config");
+        const db = await new Db().use("Picture", "Config", "BackgroundPosition");
         const db_Config = db.open("Config");
         await db_Config.setMutiple(defaultConfig);
     };
@@ -283,7 +285,8 @@ class Background { //传入数据库，背景的容器元素，背景相关的�
     constructor(db, container, conf) {
         this.container = container;
         this.conf = conf;
-        this.db = db.open("Picture")
+        this.picDb = db.open("Picture");
+        this.posDb = db.open("BackgroundPosition");
         this.setStyle();
         this.worker = new TransportWorker("cachePic"); //用于通知后台刷新缓存
         this.worker.handleWith(res => {
@@ -307,7 +310,7 @@ class Background { //传入数据库，背景的容器元素，背景相关的�
     //获取图片
     async getPic() {
         const Pic = new Picture();
-        const cache = await Pic.getFromCache(this.db); //是否存在缓存图片
+        const cache = await Pic.getFromCache(this.picDb); //是否存在缓存图片
         if (cache && cache.ok) { //存在缓存
             if (cache.type == "api" || (this.conf.preferBing && cache.type == "bing")) { //缓存类型是api，或者缓存类型是bing且优先bing
                 console.log("从缓存中加载：", cache.message);
@@ -322,7 +325,7 @@ class Background { //传入数据库，背景的容器元素，背景相关的�
         const picFromBing = await Pic.getFromBing() || {
             ok: false
         }; //从API获取图片失败，获取bing图片
-        const defaultPic = await Pic.getFromDefault(this.db) || {
+        const defaultPic = await Pic.getFromDefault(this.picDb) || {
             ok: false
         }; ///从API获取新图片失败，获取默认图片
         const picOK = [picFromBing, defaultPic].filter(i => i.ok); //筛选成功获取到图片的源
@@ -346,6 +349,8 @@ class Background { //传入数据库，背景的容器元素，背景相关的�
     async apply() {
         const {
             ok,
+            type,
+            message,
             pic
         } = await this.getPic();
         this.worker.post(this.conf.api);
@@ -356,6 +361,19 @@ class Background { //传入数据库，背景的容器元素，背景相关的�
             return window.close();
         };
         const background = dom(`<div class="wallpaper appear hide" style='background-image: url("${URL.createObjectURL(pic)}");z-index:-999;'></div>`);
+        if (["api", "default"].includes(type)) { //默认图片和从api获取的图片，可以保存图片位置
+            const [posX, posY] = await this.posDb.get(message) || [50, 50];
+            background.style.backgroundPosition = `${posX}% ${posY}%`;
+            chrome.commands.onCommand.addListener(command => { //检测保存图片位置的快捷键
+                if (command != "saveBgPos") return;
+                const style = getComputedStyle(background);
+                this.posDb.set(message, style['backgroundPosition'].replace(/%/g, "").split(" "), true);
+            });
+            chrome.commands.onCommand.addListener(command => { //检测删除图片位置的快捷键
+                if (command != "delBgPos") return;
+                this.posDb.remove(message);
+            });
+        };
         this.container.append(background);
         if (this.conf.allowDrag) this.setDrag(background);
         await new Promise(resolve => {

@@ -58,7 +58,7 @@ chrome.alarms.onAlarm.addListener(alarm => {
     const station = new TransportStation();
     await Db.init();
     let caching = false;
-    const db = await new Db().use("Picture", "Config");
+    const db = await new Db().use("Picture", "Config", "BackgroundPosition");
     const db_Config = db.open("Config");
     const conf = await db_Config.getMutiple(defaultConfig);
 
