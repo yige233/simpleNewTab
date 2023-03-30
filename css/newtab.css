@@ -1,113 +1,83 @@
 @keyframes note {
-    from {
-        opacity: 0;
-    }
+  from {
+    opacity: 0;
+  }
 
-    to {
-        opacity: 1;
-    }
+  to {
+    opacity: 1;
+  }
 }
 
 .noteappear {
-    animation: note 0.3s linear 0s 1 normal forwards;
+  animation: note 0.3s linear 0s 1 normal forwards;
 }
 
 body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    margin: 0px;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  margin: 0px;
 }
 
 .wallpaper {
-    top: 0%;
-    left: 0%;
-    width: 100%;
-    height: 100%;
-    position: fixed;
-    min-width: 1000px;
-    zoom: 1;
-    background-size: cover;
-    background-position: 50% 50%;
-    background-repeat: no-repeat;
+  top: 0%;
+  left: 0%;
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  min-width: 1000px;
+  zoom: 1;
+  background-size: cover;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
 }
 
 .note {
-    position: absolute;
-    border-radius: 10px;
-    -webkit-user-drag: none;
-    resize: both;
-    overflow: hidden;
-    min-height: 120px;
-    min-width: 120px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 5px 5px 5px 5px rgb(0 0 0 / 20%);
+  position: absolute;
+  border-radius: 10px;
+  -webkit-user-drag: none;
+  resize: both;
+  overflow: hidden;
+  min-height: 120px;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 5px 5px 5px 5px rgb(0 0 0 / 20%);
 }
 
-.noteTitle {
-    top: 0px;
-    left: 0px;
-    height: 30px;
-    line-height: 30px;
-    font-size: 16px;
-    text-align: center;
-    user-select: none;
-    border-radius: 10px 10px 0 0;
-    cursor: move;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.note-title {
+  top: 0px;
+  left: 0px;
+  height: 30px;
+  line-height: 30px;
+  font-size: 16px;
+  text-align: center;
+  user-select: none;
+  border-radius: 10px 10px 0 0;
+  cursor: move;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.noteContent {
-    box-sizing: border-box;
-    font-family: Consolas, Microsoft Yahei;
-    resize: none;
-    width: 100%;
-    border: none;
-    background-color: #0000;
-    padding: 5px;
-    flex: 10;
+.note-content {
+  box-sizing: border-box;
+  font-family: Consolas, Microsoft Yahei;
+  resize: none;
+  width: 100%;
+  border: none;
+  background-color: #0000;
+  padding: 5px;
+  flex: 10;
 }
 
-.noteContent::-webkit-scrollbar {
-    display: none;
+.note-content::-webkit-scrollbar {
+  display: none;
 }
 
-
-.noteContent:focus {
-    outline: none;
+.note-content:focus {
+  outline: none;
 }
 
-#contextmenu {
-    position: fixed;
-    z-index: 9999;
-    width: 100px;
-}
-
-#contextmenu>hr {
-    margin-block-start: 0px;
-    margin-block-end: 0px;
-
-}
-
-#contextmenu>div {
-    cursor: pointer;
-    color: rgb(0, 0, 0);
-    padding: 5px 10px;
-    background-color: rgb(220, 220, 220);
-    transition: .2s ease;
-}
-
-#contextmenu>div:first-child {
-    border-radius: 10px 10px 0px 0px;
-}
-
-#contextmenu>div:last-child {
-    border-radius: 0px 0px 10px 10px;
-}
-
-#contextmenu>div:hover {
-    color: rgb(205, 205, 205);
-    background-color: rgb(78, 78, 78);
+.ui-input {
+  width: 100%;
 }

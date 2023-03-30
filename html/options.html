@@ -1,57 +1,29 @@
 <!DOCTYPE html>
 <html>
-
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
     <title>编辑设置</title>
-    <link rel="stylesheet" href="./layui/css/layui.css">
-    <style>
-        * {
-            user-select: none;
-        }
+    <link rel="stylesheet" href="./lulu/ui.min.css" />
+    <link rel="stylesheet" href="../css/options.css" />
+  </head>
 
-        .hide {
-            display: none;
-        }
-    </style>
-</head>
-
-<body>
-    <div id="templates" class="hide">
-        <div id="tab">
-            <div class="layui-tab">
-                <ul class="layui-tab-title"></ul>
-                <div class="layui-tab-content"></div>
-            </div>
-        </div>
-        <div id="table">
-            <div class="layui-form">
-                <table class="layui-table">
-                    <colgroup></colgroup>
-                    <thead></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
+  <body>
+    <div class="header">
+      <div>编辑设置</div>
     </div>
-    <div class="layui-layout layui-layout-admin">
-        <div class="layui-header">
-            <div class="layui-logo layui-hide-xs layui-bg-black">编辑设置</div>
-        </div>
-
-        <div class="layui-side layui-bg-black">
-            <div class="layui-side-scroll"></div>
-        </div>
-
-        <div class="layui-body">
-            <div style="padding: 15px;" id="body"> </div>
-        </div>
-
-        <div class="layui-footer"> 一般而言，多数更改都会自动保存，一些更改则需要手动点击保存按钮。 </div>
+    <div class="side">
+      <div class="ui-button" role="button" tabindex="1" name="config-button" data-target="basic-config" is-tab type="primary" open>基本设置</div>
+      <div class="ui-button" role="button" tabindex="2" name="config-button" data-target="note-edit" is-tab>编辑便签</div>
+      <a class="ui-button" role="button" tabindex="3" target="_blank" href="https://github.com/yige233/simpleNewTab">扩展程序Github页面</a>
+      <a class="ui-button" role="button" tabindex="4" target="_blank" href="https://github.com/yige233/randomPicv2">API程序Github页面</a>
     </div>
-    <script src="./layui/layui.js"></script>
+    <div class="body">
+      <div id="basic-config" class="ui-tab-content active"></div>
+      <div id="note-edit" class="ui-tab-content"></div>
+    </div>
+    <div class="footer">一般而言，更改都会自动保存。</div>
+    <script type="module" src="./Lulu/all.min.js"></script>
     <script type="module" src="../js/options.js"></script>
-</body>
-
+  </body>
 </html>

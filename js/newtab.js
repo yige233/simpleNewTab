@@ -1,234 +1,379 @@
-import {
-    dom,
-    i18n,
-    presetColors,
-    Drag,
-    Db,
-    Background,
-    HotKey,
-    TransportWorker,
-    defaultConfig
-} from "./tools.js";
-
+import { TransportWorker, html, presetColors } from "./toolkit.js";
+import i18n from "./lang/main.js";
+import configuration from "./config.js";
+import database from "./database.js";
+import pictures from "./pictures.js";
 
 class Note {
-    //新建一个便签。传入便签的父元素、便签配置和同步对象。
-    constructor(container, note, syncWorker) {
-        this.maxWidth = window.innerWidth - note.size[0]; //规定便签最大据离左部多少px
-        this.maxHeight = window.innerHeight - note.size[1]; //规定便签最大据离顶部多少px
-        this.note = note;
-        this.syncWorker = syncWorker;
-        this.programControl = false;
-        const style = dom(`<style>
-        #${note.id} {
-            width:${note.size[0]}px;
-            height:${note.size[1]}px;
-            top:${(note.position[1]<0)?5:(note.position[1]>this.maxHeight)?this.maxHeight-5:note.position[1]}px;
-            left:${(note.position[0]<0?5:(note.position[0]>this.maxWidth)?this.maxWidth-5:note.position[0])}px;
-            background-color:rgba(255 255 255 / ${note.opacity});
-        }
-        #${note.id}>div.noteTitle {
-            color:${note.fontColor};
-            background-color: ${note.color};
-        }
-        #${note.id}>div.noteTitle::after {
-            content:"${note.title}"
-        }
-        #${note.id}>textarea {
-            height:${note.size[1]-30}px;
-            font-size: ${note.fontSize};
-        }
-    </style>`);
-        this.noteContainer = dom(`<div class="note" id="${note.id}"><div class="noteTitle"></div><textarea class="noteContent">${note.content}</textarea></div>`);
-        container.append(this.noteContainer);
-        document.head.append(style);
-        const title = this.noteContainer.querySelector(".noteTitle");
-        //监听删除便签。
-        title.addEventListener("click", () => {
-            if (!hotKey.has("Shift")) return;
-            Note.deleteNote(note.id);
-            syncWorker.post({
-                event: "delete",
-                tabId: currentTab.id,
-                noteId: note.id
-            });
-        });
-        this.setDrag(title);
-        this.listenStyleChange();
-        this.listenContentChange();
-    };
-    //返回一个同步对象，用于在不同新标签页之间同步便签数据
-    static noteSync() {
-        const worker = new TransportWorker("noteSync");
-        worker.handleWith(data => {
-            if (data.tabId == currentTab.id) return;
-            if (data.event == "delete") return Note.deleteNote(data.noteId);
-            if (data.event == "create") return new Note(document.body, data.note, worker);
-        });
-        return worker;
-    };
-    //删除便签
-    static deleteNote(noteId) {
-        delete conf.notes[noteId];
-        db_Config.set("notes", conf.notes, true);
-        document.querySelector("#" + noteId).remove();
-    };
-    //监听新建便签
-    static newNoteTrigger(syncWorker) {
-        const create = note => {
-            conf.notes[note.id] = note;
-            db_Config.set("notes", conf.notes, true);
-            new Note(document.body, note, syncWorker);
-            syncWorker.post({
-                event: "create",
-                note: note,
-                tabId: currentTab.id
-            });
-        };
-        //按住Ctrl并点击新标签页处新建
-        document.body.addEventListener("click", e => {
-            if (!hotKey.has("Control")) return;
-            setTimeout(() => {
-                layui.use(() => {
-                    layui.layer.prompt({
-                        value: conf.defaultNote.title,
-                        title: i18n("newTab_requireNoteTitle")
-                    }, (value, index, elem) => {
-                        layer.close(index);
-                        if (!value) return;
-                        const note = {
-                            id: "note" + Math.floor(new Date()),
-                            title: value,
-                            color: presetColors[Math.floor((Math.random() * presetColors.length))],
-                        };
-                        Object.assign(note, conf.defaultNote);
-                        note.position = [e.clientX, e.clientY];
-                        create(note);
-                    });
-                });
-
-            }, 10);
-        });
-        //快捷键新建
-        chrome.commands.onCommand.addListener(command => {
-            if (command != "newNote") return;
-            const note = {
+  static listenNewNote(parentElem) {
+    function newNote(note) {
+      const noteConfig = Object.assign({}, config.defaultNote, note);
+      new Note(parentElem, noteConfig).saveConfig();
+      noteSync.post({
+        event: "create",
+        note: noteConfig,
+        tabId: currentTab.id,
+      });
+    }
+    noteSync.handleWith((data) => {
+      if (data.tabId == currentTab.id) return false;
+      if (data.event == "create") return new Note(document.body, data.note);
+    });
+    //快捷键新建
+    chrome.commands.onCommand.addListener((command) => {
+      if (command != "newNote") return;
+      newNote({
+        id: "note" + Math.floor(new Date()),
+        title: config.defaultNote.title,
+        color: presetColors[Math.floor(Math.random() * presetColors.length)],
+      });
+    });
+    document.body.addEventListener("click", (e) => {
+      if (!hotKey.has("Control") || ![...e.target.classList.values()].includes("wallpaper")) return;
+      const inputElem = html(`<input class="ui-input" value="${config.defaultNote.title}" placeholder="${config.defaultNote.title}" />`);
+      const prompt = new Dialog({
+        content: inputElem,
+        title: i18n.newTab.newNote,
+        buttons: [
+          {
+            value: "确定",
+            events: () => {
+              const value = inputElem.value || null;
+              prompt.remove();
+              if (!value) return;
+              newNote({
                 id: "note" + Math.floor(new Date()),
-                title: conf.defaultNote.title,
-                color: presetColors[Math.floor((Math.random() * presetColors.length))],
-            };
-            Object.assign(note, conf.defaultNote);
-            create(note);
-        });
+                title: value,
+                color: presetColors[Math.floor(Math.random() * presetColors.length)],
+                position: [e.clientX, e.clientY],
+              });
+            },
+          },
+          {},
+        ],
+      });
+      prompt.addEventListener("hide", () => prompt.remove());
+    });
+  }
+  programControl = false;
+  parentElem = null;
+  constructor(parentElem, note) {
+    this.note = note;
+    this.config = {
+      maxWidth: window.innerWidth - note.size[0],
+      maxHeight: window.innerHeight - note.size[1],
     };
-    //从一堆完整的便签配置项加载便签
-    static loadNotes(notes, syncWorker) {
-        for (let note in notes) new Note(document.body, notes[note], syncWorker);
-    };
-    //修改便签样式
-    changeStyle(styles = {}) {
-        const {
-            position = [null, null], size = [null, null]
-        } = styles;
-        position[0] && (this.noteContainer.style.left = `${position[0]}px`);
-        position[1] && (this.noteContainer.style.top = `${position[1]}px`);
-        size[0] && (this.noteContainer.style.width = `${size[0]}px`);
-        size[1] && (this.noteContainer.style.height = `${size[1]}px`);
-    };
-    //保存便签配置
-    save(items) {
-        for (let item in items) this.note[item] = items[item];
-        conf.notes[this.note.id] = this.note;
-        db_Config.set("notes", conf.notes, true);
-    };
-    //为便签设置拖拽
-    setDrag(title) {
-        const drag = new Drag(title);
-        drag.onStart(() => {
-            const style = getComputedStyle(this.noteContainer);
-            return [style.left.replace(/[a-z]/g, ""), style.top.replace(/[a-z]/g, "")];
+    this.parentElem = parentElem;
+    noteSync.handleWith((data) => {
+      if (data.tabId == currentTab.id) return false;
+      if (data.event == "delete") return this.delete(data.noteId);
+    });
+    this.load();
+    return this;
+  }
+  delete(noteId = this.note.id) {
+    document.querySelector("#" + noteId).remove();
+    delete config.notes[noteId];
+    setConf("notes", config.notes, true);
+  }
+  load() {
+    const body = html(`<div class="note noteappear" id="${this.note.id}"><div class="note-title"></div><textarea class="note-content">${this.note.content}</textarea></div>`);
+    const title = body.querySelector(".note-title");
+    const content = body.querySelector(".note-content");
+    const drag = new Drag(title);
+    this.setStyle();
+    title.addEventListener("click", () => {
+      if (!hotKey.has("Shift")) return;
+      noteSync.post({
+        event: "delete",
+        tabId: currentTab.id,
+        noteId: this.note.id,
+      });
+      this.delete();
+    });
+    content.addEventListener("input", (e) => {
+      noteSync.post({
+        tabId: currentTab.id,
+        event: "syncContent",
+        content: e.target.value,
+      });
+    });
+    drag.onStart(() => {
+      const style = getComputedStyle(body);
+      return [style.left.replace(/[a-z]/g, ""), style.top.replace(/[a-z]/g, "")];
+    });
+    drag.onDragging((e) => {
+      let newPosX = Number(drag.posX) + (e.clientX - drag.prevMoveX);
+      let newPosY = Number(drag.posY) + (e.clientY - drag.prevMoveY);
+      this.changeStyle(body, {
+        position: [newPosX, newPosY],
+      });
+    });
+    noteSync.handleWith((data) => {
+      if (data.tabId == currentTab.id) return;
+      if (data.event == "syncContent") {
+        content.value = data.content;
+        this.saveConfig({
+          content: data.content,
         });
-        drag.onDragging(e => {
-            let newPosX = Number(drag.posX) + (e.clientX - drag.prevMoveX);
-            let newPosY = Number(drag.posY) + (e.clientY - drag.prevMoveY);
-            this.changeStyle({
-                position: [newPosX, newPosY]
-            });
+      }
+      if (data.event == "syncStyle") {
+        if (data.noteId != this.note.id) return;
+        //为当前便签设置“正在被程序控制”的flag
+        this.programControl = true;
+        this.changeStyle(body, data);
+        this.saveConfig({
+          position: data.position,
+          size: data.size,
         });
-    };
-    //监听便签内容变化，并同步数据。
-    listenContentChange() {
-        const textarea = this.noteContainer.querySelector(".noteContent");
-        this.syncWorker.handleWith(data => {
-            if (data.tabId == currentTab.id) return;
-            if (data.event == "syncContent") {
-                textarea.value = data.content;
-            };
-        });
-        textarea.addEventListener("input", e => {
-            this.syncWorker.post({
-                tabId: currentTab.id,
-                event: "syncContent",
-                content: e.target.value
-            });
-            this.save({
-                content: e.target.value
-            });
-        });
-    };
-    //监听便签样式变化，并同步数据
-    listenStyleChange() {
-        this.syncWorker.handleWith(data => {
-            if (data.tabId == currentTab.id) return;
-            if (data.event == "syncStyle") {
-                if (data.noteId != this.note.id) return;
-                //为当前便签设置“正在被程序控制”的flag
-                this.programControl = true;
-                this.changeStyle(data);
-            };
-        });
-        //检测便签样式变化
-        new MutationObserver(async (mutationList, observer) => {
-            const style = getComputedStyle(mutationList[0].target);
-            const position = [style.left.replace(/[a-z]/g, ""), style.top.replace(/[a-z]/g, "")];
-            const size = [style.width.replace(/[a-z]/g, ""), style.height.replace(/[a-z]/g, "")];
-            this.save({
-                position: position,
-                size: size
-            });
-            //如果当前便签正在被程序控制，就什么也不做，避免造成鬼畜，但是把“正在被程序控制”改为false。
-            //下一次样式变化时，如果该flag还是false，就说明当前没有被程序控制，可以将自身的样式同步给其他tab
-            if (this.programControl) {
-                this.programControl = false;
-                return;
-            };
-            this.syncWorker.post({
-                tabId: currentTab.id,
-                event: "syncStyle",
-                noteId: this.note.id,
-                position: position,
-                size: size
-            });
-        }).observe(this.noteContainer, {
-            arrtibutes: true,
-            attributeFilter: ["style"]
-        });
-    };
-};
+      }
+    });
+    new MutationObserver(async (mutationList, observer) => {
+      //如果当前便签正在被程序控制，就什么也不做，避免造成鬼畜，但是把“正在被程序控制”改为false。
+      //下一次样式变化时，如果该flag还是false，就说明当前没有被程序控制，可以将自身的样式同步给其他tab
+      if (this.programControl) return (this.programControl = false);
+      const style = getComputedStyle(mutationList[0].target);
+      const position = [style.left.replace(/[a-z]/g, ""), style.top.replace(/[a-z]/g, "")];
+      const size = [style.width.replace(/[a-z]/g, ""), style.height.replace(/[a-z]/g, "")];
+      noteSync.post({
+        tabId: currentTab.id,
+        event: "syncStyle",
+        noteId: this.note.id,
+        position: position,
+        size: size,
+      });
+    }).observe(body, {
+      arrtibutes: true,
+      attributeFilter: ["style"],
+    });
+    this.parentElem.append(body);
+  }
+  saveConfig(items = {}) {
+    for (let item in items) this.note[item] = items[item];
+    config.notes[this.note.id] = this.note;
+    setConf("notes", config.notes, true);
+  }
+  changeStyle(bodyElem, styles = {}) {
+    const { position = [null, null], size = [null, null] } = styles;
+    position[0] && (bodyElem.style.left = `${position[0]}px`);
+    position[1] && (bodyElem.style.top = `${position[1]}px`);
+    size[0] && (bodyElem.style.width = `${size[0]}px`);
+    size[1] && (bodyElem.style.height = `${size[1]}px`);
+  }
+  setStyle() {
+    const { id, size, position, opacity, fontColor, color, title, fontSize } = this.note;
+    const { maxWidth, maxHeight } = this.config;
+    document.head.append(
+      html(`<style>
+    #${id} {
+        width:${size[0]}px;
+        height:${size[1]}px;
+        top:${position[1] < 0 ? 5 : position[1] > maxHeight ? maxHeight - 5 : position[1]}px;
+        left:${position[0] < 0 ? 5 : position[0] > maxWidth ? maxWidth - 5 : position[0]}px;
+        background-color:rgba(255 255 255 / ${opacity});
+    }
+    #${id}>div.note-title {
+        color:${fontColor};
+        background-color: ${color};
+    }
+    #${id}>div.note-title::after {
+        content:"${title}"
+    }
+    #${id}>textarea {
+        height:${size[1] - 30}px;
+        font-size: ${fontSize};
+    }
+</style>`)
+    );
+  }
+}
 
-const db = await new Db().use("Picture", "Config");
-const db_Config = db.open("Config");
-const conf = await db_Config.getMutiple(defaultConfig);
+//允许拖动元素。
+class Drag {
+  //传入欲使得可拖动的元素。
+  constructor(target) {
+    this.target = target; //目标元素
+    this.dragging = false; //拖动中的flag
+    this.posX = 0; //拖动开始时的坐标x
+    this.posY = 0; //拖动开始时的坐标y
+    this.prevMoveX = 0; //上一次拖动时的坐标x
+    this.prevMoveY = 0; //上一次拖动时的坐标y
+    this.onDragEnd = () => {};
+    window.addEventListener("mouseup", () => {
+      if (this.dragging) {
+        this.dragging = false;
+        this.onDragEnd();
+      }
+    });
+    this.target.addEventListener("dragstart", (e) => {
+      e.preventDefault();
+    });
+  }
+  //拖动开始，传入一个回调函数，参数为mousedown事件，应当返回一个包含元素初始坐标[x,y]的数组。可能会出现各种莫名其妙的需求，所以这一步可以自定义。
+  onStart(func) {
+    this.target.addEventListener("mousedown", (e) => {
+      this.prevMoveX = e.clientX; //设置上一次拖动时的坐标为当前鼠标的坐标
+      this.prevMoveY = e.clientY;
+      [this.posX, this.posY] = func(e); //设置当前元素的坐标
+      this.dragging = true; //标志开始拖动
+    });
+  }
+  //拖动时，传入一个回调函数，参数为mousemove事件，应当在这里为元素设置新坐标，一个例子是：从const newPosX = Number(Drag.posX) + (e.clientX - Drag.prevMoveX); Drag.style.left = `${newPosX}px`;
+  //元素的新坐标x = 原始坐标 + （当前鼠标坐标 - 上一次鼠标坐标）
+  onDragging(func) {
+    window.addEventListener("mousemove", (e) => {
+      if (this.dragging) func(e);
+    });
+  }
+}
+
+//设置背景
+class Background {
+  //传入背景的容器元素，背景相关的配置
+  constructor() {
+    this.setStyle();
+    cachingPic.handleWith((res) => {
+      console.log("后台缓存图片结果：", res);
+      if (res === null) cachingPic.post();
+    });
+    cachingPic.post();
+  }
+  async load(parentElem) {
+    const picture = await this.getPic();
+    const bgPosition = db.open("BackgroundPosition");
+    if (!picture) {
+      //获取所有图片源都失败，使用浏览器默认新标签页
+      chrome.tabs.create({
+        url: "chrome-search://local-ntp/local-ntp.html",
+      });
+      return window.close();
+    }
+    const { pic, type, message, name, api } = picture;
+    console.log("获取图片：", message);
+    const background = html(`<div class="wallpaper appear hide" style='background-image: url("${URL.createObjectURL(pic)}");z-index:-999;'></div>`);
+    if (!["bingPic"].includes(type)) {
+      //不是从bing获取的图片，可以保存图片位置
+      const keyName = `${name},${api}`;
+      const position = await bgPosition.get(keyName);
+      const positionOld = await bgPosition.get(message);
+      if (positionOld) {
+        //将旧的键名换成成新的格式
+        bgPosition.remove(message);
+        bgPosition.set(keyName, positionOld, true);
+      }
+      const [posX, posY] = position || positionOld || [50, 50];
+      background.style.backgroundPosition = `${posX}% ${posY}%`;
+      chrome.commands.onCommand.addListener((command) => {
+        //检测保存图片位置的快捷键
+        if (command != "saveBgPos") return;
+        const style = getComputedStyle(background);
+        bgPosition.set(keyName, style["backgroundPosition"].replace(/%/g, "").split(" "), true);
+      });
+      chrome.commands.onCommand.addListener((command) => {
+        //检测删除图片位置的快捷键
+        if (command != "delBgPos") return;
+        bgPosition.remove(keyName);
+      });
+    }
+    parentElem.append(background);
+    if (config.allowDrag) {
+      const drag = new Drag(background);
+      drag.onStart(() => {
+        const style = getComputedStyle(background);
+        return style["backgroundPosition"].replace(/%/g, "").split(" ");
+      });
+      drag.onDragging((e) => {
+        let newPosX = Number(drag.posX) - (e.clientX - drag.prevMoveX) / config.dragSenstive;
+        let newPosY = Number(drag.posY) - (e.clientY - drag.prevMoveY) / config.dragSenstive;
+        background.style.backgroundPosition = `${newPosX}% ${newPosY}%`;
+      });
+    }
+    await new Promise((resolve) => {
+      background.addEventListener("animationstart", () => {
+        background.classList.toggle("hide");
+      });
+      background.addEventListener("animationend", () => resolve());
+    });
+  }
+  //获取图片
+  async getPic() {
+    const cache = await libPicture.getDbPic("cachedPic"); //是否存在缓存图片
+    //存在缓存,且缓存类型不是bing，或者缓存类型是bing且优先bing
+    if (cache && (cache.type != "bingPic" || (config.preferBing && cache.type == "bingPic"))) {
+      return cache;
+    }
+    const picFromApi = await libPicture.getApi(); //不存在缓存图片，直接从api获取图片，并后台缓存新图片
+    if (picFromApi) {
+      return picFromApi;
+    }
+    const picFromBing = await libPicture.getBing(); //从API获取图片失败，获取bing图片
+    const defaultPic = await libPicture.getDbPic("defaultPic"); ///从API获取新图片失败，获取默认图片
+    const picOK = [picFromBing, defaultPic].filter((i) => i); //筛选成功获取到图片的源
+    if (picOK.length == 2) {
+      //如果两个都获取成功，根据preferBing来判断使用哪个
+      if (config.preferBing) {
+        return picFromBing;
+      }
+      return defaultPic;
+    }
+    if (picOK.length == 1) {
+      return picOK[0];
+    }
+    return null;
+  }
+  //设置相关样式
+  setStyle() {
+    const keyframesArr = [];
+    for (let [name, style] of config.keyframes) {
+      keyframesArr.push(`${name} {${style.join("\n")}}`);
+    }
+    const style = `<style>
+            @keyframes appear {${keyframesArr.join("\n")}}
+            body{background-color: ${config.bgColor};}
+            .appear {animation: appear ${config.animation.duration} ${config.animation.function} ${config.animation.delay} 1 normal forwards;}
+            .hide {opacity:0}
+        </style>`;
+    document.head.append(html(style));
+  }
+}
+
+//检测按键
+class HotKey {
+  activeKeys = new Set();
+  constructor() {
+    window.addEventListener("keydown", (e) => {
+      this.activeKeys.add(e.key); //有按键按下时，将其添加进Set
+    });
+    window.addEventListener("keyup", (e) => {
+      this.activeKeys.delete(e.key); //松开后将其从Set删除
+    });
+  }
+  has(...keys) {
+    let hasKeys = false;
+    for (let key of keys) {
+      if (this.activeKeys.has(key)) {
+        this.activeKeys.delete(key); //检测到按键后也将其删除，避免出现循环
+        hasKeys = true;
+      } else hasKeys = false;
+    }
+    return hasKeys;
+  }
+}
+
+document.head.querySelector("title").innerText = i18n.newTab.title;
 const hotKey = new HotKey();
 const currentTab = await chrome.tabs.getCurrent();
-const noteSync = Note.noteSync();
+const { config, set: setConf } = await configuration;
+const noteSync = new TransportWorker("noteSync");
+const cachingPic = new TransportWorker("cachePic");
+const db = await database;
+const libPicture = await pictures;
 
-document.head.querySelector("title").innerText = i18n("newTab_title");
-await new Background(db, document.body, conf).apply();
-Note.loadNotes(conf.notes, noteSync);
-Note.newNoteTrigger(noteSync);
+await new Background().load(document.body);
+for (let note in config.notes) new Note(document.body, config.notes[note]);
+Note.listenNewNote(document.body);
 
 //background.js作为Service Worker，最多5分钟就会停止活动。用alarms API唤醒background.js
 chrome.alarms.create("wakeUp", {
-    delayInMinutes: 5
+  delayInMinutes: 5,
 });
