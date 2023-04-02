@@ -7,17 +7,14 @@ import pictures from "./pictures.js";
 class Note {
   static listenNewNote(parentElem) {
     function newNote(note) {
-      const noteConfig = Object.assign({}, config.defaultNote, note);
-      new Note(parentElem, noteConfig).saveConfig();
       noteSync.post({
         event: "create",
-        note: noteConfig,
+        note: Object.assign({}, config.defaultNote, note),
         tabId: currentTab.id,
       });
     }
     noteSync.handleWith((data) => {
-      if (data.tabId == currentTab.id) return false;
-      if (data.event == "create") return new Note(document.body, data.note);
+      if (data.event == "create") return new Note(parentElem, data.note).saveConfig();
     });
     //快捷键新建
     chrome.commands.onCommand.addListener((command) => {
@@ -28,8 +25,8 @@ class Note {
         color: presetColors[Math.floor(Math.random() * presetColors.length)],
       });
     });
-    document.body.addEventListener("click", (e) => {
-      if (!hotKey.has("Control") || ![...e.target.classList.values()].includes("wallpaper")) return;
+    window.addEventListener("click", (e) => {
+      if (!(e.ctrlKey || e.metaKey) || ![...e.target.classList.values()].includes("wallpaper")) return;
       const inputElem = html(`<input class="ui-input" value="${config.defaultNote.title}" placeholder="${config.defaultNote.title}" />`);
       const prompt = new Dialog({
         content: inputElem,
@@ -56,19 +53,16 @@ class Note {
     });
   }
   programControl = false;
-  parentElem = null;
   constructor(parentElem, note) {
     this.note = note;
     this.config = {
       maxWidth: window.innerWidth - note.size[0],
       maxHeight: window.innerHeight - note.size[1],
     };
-    this.parentElem = parentElem;
     noteSync.handleWith((data) => {
-      if (data.tabId == currentTab.id) return false;
       if (data.event == "delete") return this.delete(data.noteId);
     });
-    this.load();
+    parentElem.append(this.noteDiv());
     return this;
   }
   delete(noteId = this.note.id) {
@@ -76,20 +70,19 @@ class Note {
     delete config.notes[noteId];
     setConf("notes", config.notes, true);
   }
-  load() {
+  noteDiv() {
     const body = html(`<div class="note noteappear" id="${this.note.id}"><div class="note-title"></div><textarea class="note-content">${this.note.content}</textarea></div>`);
     const title = body.querySelector(".note-title");
     const content = body.querySelector(".note-content");
     const drag = new Drag(title);
     this.setStyle();
-    title.addEventListener("click", () => {
-      if (!hotKey.has("Shift")) return;
+    title.addEventListener("click", (e) => {
+      if (!e.shiftKey) return;
       noteSync.post({
         event: "delete",
         tabId: currentTab.id,
         noteId: this.note.id,
       });
-      this.delete();
     });
     content.addEventListener("input", (e) => {
       noteSync.post({
@@ -146,7 +139,7 @@ class Note {
       arrtibutes: true,
       attributeFilter: ["style"],
     });
-    this.parentElem.append(body);
+    return body;
   }
   saveConfig(items = {}) {
     for (let item in items) this.note[item] = items[item];
@@ -337,31 +330,7 @@ class Background {
   }
 }
 
-//检测按键
-class HotKey {
-  activeKeys = new Set();
-  constructor() {
-    window.addEventListener("keydown", (e) => {
-      this.activeKeys.add(e.key); //有按键按下时，将其添加进Set
-    });
-    window.addEventListener("keyup", (e) => {
-      this.activeKeys.delete(e.key); //松开后将其从Set删除
-    });
-  }
-  has(...keys) {
-    let hasKeys = false;
-    for (let key of keys) {
-      if (this.activeKeys.has(key)) {
-        this.activeKeys.delete(key); //检测到按键后也将其删除，避免出现循环
-        hasKeys = true;
-      } else hasKeys = false;
-    }
-    return hasKeys;
-  }
-}
-
 document.head.querySelector("title").innerText = i18n.newTab.title;
-const hotKey = new HotKey();
 const currentTab = await chrome.tabs.getCurrent();
 const { config, set: setConf } = await configuration;
 const noteSync = new TransportWorker("noteSync");
