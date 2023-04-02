@@ -5,7 +5,7 @@ import database from "./database.js";
 import pictures from "./pictures.js";
 
 class Note {
-  static listenNewNote(parentElem) {
+  static globalNoteManage(parentElem) {
     function newNote(note) {
       noteSync.post({
         event: "create",
@@ -15,6 +15,7 @@ class Note {
     }
     noteSync.handleWith((data) => {
       if (data.event == "create") return new Note(parentElem, data.note).saveConfig();
+      if (data.event == "delete") return Note.delete(data.noteId);
     });
     //快捷键新建
     chrome.commands.onCommand.addListener((command) => {
@@ -51,6 +52,12 @@ class Note {
       });
       prompt.addEventListener("hide", () => prompt.remove());
     });
+    for (let note in config.notes) new Note(parentElem, config.notes[note]);
+  }
+  static delete(noteId) {
+    document.querySelector("#" + noteId).remove();
+    delete config.notes[noteId];
+    setConf("notes", config.notes, true);
   }
   programControl = false;
   constructor(parentElem, note) {
@@ -59,16 +66,8 @@ class Note {
       maxWidth: window.innerWidth - note.size[0],
       maxHeight: window.innerHeight - note.size[1],
     };
-    noteSync.handleWith((data) => {
-      if (data.event == "delete") return this.delete(data.noteId);
-    });
     parentElem.append(this.noteDiv());
     return this;
-  }
-  delete(noteId = this.note.id) {
-    document.querySelector("#" + noteId).remove();
-    delete config.notes[noteId];
-    setConf("notes", config.notes, true);
   }
   noteDiv() {
     const body = html(`<div class="note noteappear" id="${this.note.id}"><div class="note-title"></div><textarea class="note-content">${this.note.content}</textarea></div>`);
@@ -88,6 +87,7 @@ class Note {
       noteSync.post({
         tabId: currentTab.id,
         event: "syncContent",
+        noteId: this.note.id,
         content: e.target.value,
       });
     });
@@ -103,7 +103,7 @@ class Note {
       });
     });
     noteSync.handleWith((data) => {
-      if (data.tabId == currentTab.id) return;
+      if (data.tabId == currentTab.id || data.noteId != this.note.id) return;
       if (data.event == "syncContent") {
         content.value = data.content;
         this.saveConfig({
@@ -111,7 +111,6 @@ class Note {
         });
       }
       if (data.event == "syncStyle") {
-        if (data.noteId != this.note.id) return;
         //为当前便签设置“正在被程序控制”的flag
         this.programControl = true;
         this.changeStyle(body, data);
@@ -339,8 +338,7 @@ const db = await database;
 const libPicture = await pictures;
 
 await new Background().load(document.body);
-for (let note in config.notes) new Note(document.body, config.notes[note]);
-Note.listenNewNote(document.body);
+Note.globalNoteManage(document.body);
 
 //background.js作为Service Worker，最多5分钟就会停止活动。用alarms API唤醒background.js
 chrome.alarms.create("wakeUp", {
