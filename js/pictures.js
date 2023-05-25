@@ -64,7 +64,7 @@ class Picture {
     const pool = [];
     if (this.instances.length == 0) return false;
     for (let i in this.instances) {
-      pool.push((pool[i - 1] || 0) + this.instances[i].weight);
+      pool.push((pool[i - 1] || 0) + Number(this.instances[i].weight));
     }
     const luckyNum = Math.floor(Math.random() * pool[pool.length - 1] + 1); //在 1 到之前累加的 最大值+1 的范围内生成随机数
     for (let i in pool) {
