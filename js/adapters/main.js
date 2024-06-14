@@ -2,7 +2,7 @@ const _adapterName = Symbol("adapterName");
 const _configTemplate = Symbol("configTemplate");
 const _func = Symbol("func");
 
-class ApiAdapter {
+export default class ApiAdapter {
   /**
    * 构造新的api适配器
    * @param {*} adapterName 适配器名称
@@ -33,5 +33,3 @@ class ApiAdapter {
     };
   }
 }
-
-export default ApiAdapter;

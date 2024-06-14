@@ -1,103 +1,84 @@
-* {
-  user-select: none;
-  font-family: Consolas, Microsoft Yahei;
+@media screen and (max-width: 768px) {
+  nav {
+    height: 5em;
+  }
+  #home > article > div {
+    padding: 5em 0 0 0;
+  }
 }
-
-.hide {
-  display: none;
+@media screen and (min-width: 769px) {
+  #home > article > div {
+    padding: 3em 0 0 0;
+  }
 }
-
-.header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--ui-dark-blue);
-  height: 60px;
+aside .side-index {
+  position: sticky;
+  top: 5em;
 }
-.header > div {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 200px;
-  height: 100%;
-  line-height: 60px;
-  text-align: center;
-  color: var(--ui-light);
-  font-size: 20px;
+aside .side-index a.button {
+  text-align: left;
 }
-.side {
-  position: fixed;
-  left: 0;
-  bottom: 0;
-  top: 60px;
-  width: 200px;
-  z-index: 10;
-  overflow-x: hidden;
-  background-color: var(--ui-dark);
+#home article h2 {
+  line-height: 1;
 }
-.side > *,
-#links > a {
-  height: 50px;
+#home article h3 {
+  margin-bottom: 0.6em;
+}
+#home aside h2 {
+  margin-top: 0;
+  padding: 1.25em 0;
+  line-height: 1;
+}
+#home > section {
+  background: #fff;
+  text-align: left;
+  width: 80%;
+  margin: 0 auto;
+  padding: 80px 0 0;
+}
+#home aside a.button {
   display: block;
-  position: relative;
-  margin: 5px;
 }
-.body {
-  position: absolute;
-  top: 60px;
-  padding-bottom: 44px;
-  left: 200px;
-  min-width: 1000px;
-  right: 0;
-  bottom: 0;
-  overflow: scroll;
-  width: auto;
-  background-color: var(--ui-light);
-  box-sizing: border-box;
+#home aside a.pseudo {
+  color: #0074d9;
+  margin: 0;
 }
-.footer {
-  position: fixed;
-  left: 200px;
-  right: 0;
-  bottom: 0;
-  z-index: 10;
-  height: 44px;
-  line-height: 44px;
-  padding: 0 15px;
-  font-size: 16px;
-  box-shadow: -1px 0 4px rgb(0 0 0 / 12%);
-  filter: contrast(0.5);
-  background-color: var(--ui-light);
+.menu > a {
+  margin: 0px;
 }
-
-.ui-tab-content {
-  margin: 10px;
+article.card > * {
+  padding: 10px;
 }
-thead > tr > th:nth-child(1) {
+input,
+select {
   max-width: 200px;
+  margin: 0px 10px;
 }
-
+input[type="color"] {
+  width: 50px;
+}
 textarea {
+  resize: vertical;
+  max-width: 300px;
+  height: 50px;
+}
+button {
+  margin: 2px 5px;
+}
+p {
+  white-space: break-spaces;
+}
+td,
+th {
+  padding: 0.3em 0.4em 0.3em 0.6em;
+}
+table[class="primary"] {
   width: 100%;
-  min-height: 100px;
-  min-width: 100px;
+  display: table;
 }
-
-.ui-tab-tab {
-  margin: 0 20px 0 0;
-  line-height: 40px;
-  padding-top: 0;
-  border-bottom: 0;
-  margin-bottom: 0;
+.checkable {
+  margin-left: 0.5em;
 }
-
-.ui-tab-tabs {
-  flex-wrap: wrap;
-  height: 100%;
-}
-
-input {
-  width: 100%;
-  min-width: 50px;
+*[data-tooltip] {
+  cursor: help;
 }

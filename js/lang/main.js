@@ -22,4 +22,33 @@ function merge(a, b) {
   return Object.freeze(c);
 }
 
-export default merge(translations[defaultLang], targetTrans);
+const langMap = merge(translations[defaultLang], targetTrans);
+
+/**
+ * 从 apiMapData 里查找指定路径属性的值
+ * @param {string} propPath 属性路径，用点分隔
+ * @returns
+ */
+export default function (propPath) {
+  // 如果propPath不是字符串
+  if (typeof propPath !== "string") {
+    return `bad propPath: ${propPath}`;
+  }
+  /** 属性路径数组 */
+  const properties = propPath.split(".");
+  /** 最后一个属性名 */
+  const lastProperty = properties.pop();
+  let target = langMap;
+  // 遍历属性路径数组，获取目标对象
+  for (const propName of properties) {
+    if (!target[propName]) {
+      return `propPath not found: ${propPath}`;
+    }
+    target = target[propName];
+  }
+  const result = target[lastProperty] ?? `target is null or undefined: ${propPath}`;
+  if (typeof result != "string") {
+    return `target propery is not a string: ${propPath}`;
+  }
+  return result;
+}

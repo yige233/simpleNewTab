@@ -1,29 +1,33 @@
+<!--- html结构修改自 https://picnicss.com/documentation --->
 <!DOCTYPE html>
-<html>
+<html lang="zh">
   <head>
+    <title>{{settings-title}}</title>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-    <title>编辑设置</title>
-    <link rel="stylesheet" href="./lulu/ui.min.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="../css/picnic.min.css" />
     <link rel="stylesheet" href="../css/options.css" />
+    <link rel="stylesheet" href="../css/dialog.css" />
   </head>
 
   <body>
-    <div class="header">
-      <div>编辑设置</div>
-    </div>
-    <div class="side">
-      <div class="ui-button" role="button" tabindex="1" name="config-button" data-target="basic-config" is-tab type="primary" open>基本设置</div>
-      <div class="ui-button" role="button" tabindex="2" name="config-button" data-target="note-edit" is-tab>编辑便签</div>
-      <a class="ui-button" role="button" tabindex="3" target="_blank" href="https://github.com/yige233/simpleNewTab">扩展程序Github页面</a>
-      <a class="ui-button" role="button" tabindex="4" target="_blank" href="https://github.com/yige233/randomPicv2">API程序Github页面</a>
-    </div>
-    <div class="body">
-      <div id="basic-config" class="ui-tab-content active"></div>
-      <div id="note-edit" class="ui-tab-content"></div>
-    </div>
-    <div class="footer">一般而言，更改都会自动保存。</div>
-    <script type="module" src="./Lulu/all.min.js"></script>
-    <script type="module" src="../js/options.js"></script>
+    <nav>
+      <span class="brand">{{settings-brand}}</span>
+      <div class="menu">
+        <a href="#home" class="pseudo button">{{settings-to-top}}</a>
+        <a href="https://github.com/yige233/randomPicv2" class="pseudo button" target="_blank">{{settings-ext-link}}</a>
+        <a href="https://github.com/yige233/simpleNewTab" class="pseudo button" target="_blank">{{settings-api-link}}</a>
+      </div>
+    </nav>
+    <main id="home">
+      <section class="flex five">
+        <aside class="full fifth-1000">
+          <h2>{{settings-index}}</h2>
+          <div class="side-index flex two three-500 five-800 one-1000"></div>
+        </aside>
+        <article class="main-content full four-fifth-1000"></article>
+      </section>
+    </main>
   </body>
+  <script type="module" src="../js/options.js"></script>
 </html>
