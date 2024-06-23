@@ -206,8 +206,8 @@ function addItemNote(note) {
 (() => {
   const tableList = new Table(
     i18n("config.api.api.type"),
-    i18n("config..api.current"),
-    html("span", { "data-tooltip": i18n("config..api.api.weight.desc") }, i18n("config.api.api.weight.name")),
+    i18n("config.api.current"),
+    html("span", { "data-tooltip": i18n("config.api.api.weight.desc") }, i18n("config.api.api.weight.name")),
     html("span", { "data-tooltip": i18n("config.api.api.config.desc") }, i18n("config.api.api.config.name")),
     ""
   );
