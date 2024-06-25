@@ -381,7 +381,7 @@ class Background {
    * @param {number} y y坐标
    */
   setPosition(x = 50, y = 50) {
-    [x, y] = [x, y].map((i) => i.toFixed(1));
+    [x, y] = [x, y].map((i) => i.toFixed(Number(i)));
     CSS.setVariable("bg-position", `${x}% ${y}%`);
   }
   /**
@@ -396,7 +396,10 @@ class Background {
     const style = getComputedStyle(this.background);
     await STORAGE.set(`backgroundPosition/${this.keyName}`, {
       name: this.meta.name,
-      pos: style["backgroundPosition"].replace(/%/g, "").split(" "),
+      pos: style["backgroundPosition"]
+        .replace(/%/g, "")
+        .split(" ")
+        .map((i) => Number(i)),
     });
   }
   /** 设置样式 */
