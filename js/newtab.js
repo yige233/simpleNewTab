@@ -381,7 +381,7 @@ class Background {
    * @param {number} y y坐标
    */
   setPosition(x = 50, y = 50) {
-    [x, y] = [x, y].map((i) => i.toFixed(Number(i)));
+    [x, y] = [x, y].map((i) => Number(i).toFixed());
     CSS.setVariable("bg-position", `${x}% ${y}%`);
   }
   /**
