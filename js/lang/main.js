@@ -25,7 +25,7 @@ function merge(a, b) {
 const langMap = merge(translations[defaultLang], targetTrans);
 
 /**
- * 从 apiMapData 里查找指定路径属性的值
+ * 从 本地化语言对象里查找指定路径属性的值
  * @param {string} propPath 属性路径，用点分隔
  * @returns
  */
@@ -47,8 +47,5 @@ export default function (propPath) {
     target = target[propName];
   }
   const result = target[lastProperty] ?? `target is null or undefined: ${propPath}`;
-  if (typeof result != "string") {
-    return `target propery is not a string: ${propPath}`;
-  }
   return result;
 }

@@ -311,7 +311,7 @@ addItem({
         undefined,
         html("div", i18n("config.animation.delay"), inputElement({ type: "number", step: 0.1, min: 0 }, "config.animation.delay")),
         html("div", i18n("config.animation.duration"), inputElement({ type: "number", step: 0.1, min: 0 }, "config.animation.duration")),
-        html("div", i18n("config.animation.function.desc"), selectElement({ style: "max-width:400px;" }, "config.animation.function", i18n("config.animation.function.option")))
+        html("div", i18n("config.animation.function.desc"), selectElement({ style: "max-width:400px;" }, CONFIG.$("config.animation.function"), i18n("config.animation.function.option")))
       ),
       card(html("h3", i18n("config.animation.keyframes.name")), () => {
         for (const [name] of config.keyframes) {

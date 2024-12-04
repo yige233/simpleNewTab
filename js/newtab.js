@@ -35,7 +35,7 @@ class NoteController {
   }
   /**
    * 初始化便签控制器
-   * @param {Elem } parentElem 便签的父元素
+   * @param {Element} parentElem 便签的父元素
    * @param {Object} defaultNote 默认便签
    */
   constructor(parentElem, defaultNote = {}) {
@@ -112,7 +112,7 @@ class Note {
   syncStyle = false;
   /**
    * 新建便签
-   * @param {*} parentElem 便签父元素
+   * @param {Element} parentElem 便签父元素
    * @param {*} defaultNote 默认便签数据
    * @param {*} note 便签数据
    * @returns
@@ -124,7 +124,12 @@ class Note {
       maxHeight: window.innerHeight - this.note.size[1],
     };
     if (document.querySelector("#" + this.note.id)) return;
-    this.noteBody = html("div", { class: "note noteappear", id: this.note.id }, html("div", { class: "note-title" }), html("textarea", { class: "note-content" }, this.note.content));
+    this.noteBody = html(
+      "div",
+      { class: "note noteappear", id: this.note.id, style: `z-index:${document.querySelectorAll(".note")?.length || 0}` },
+      html("div", { class: "note-title" }),
+      html("textarea", { class: "note-content" }, this.note.content)
+    );
     this.save();
     this.initTitleEvent();
     this.initBodyEvent();
@@ -163,6 +168,7 @@ class Note {
       const [initX, initY] = Note.getNotePosition(this.noteBody);
       [offsetX, offsetY] = [x - initX, y - initY];
       this.dragging = true;
+      this.top();
     });
     titleElem.addEventListener("dragging", (e) => {
       // 将当前鼠标位置减去开始拖动时计算得到的偏差量，设置为新的元素位置
@@ -181,6 +187,7 @@ class Note {
       this.save({ content: contentElem.value });
       NoteController.messenger.emit("syncContent", { tabId: CURRENTTAB.id, noteId: this.note.id, content: contentElem.value });
     });
+    contentElem.addEventListener("focus", () => this.top());
   }
   /** 初始化同步监听 */
   initSync() {
@@ -205,7 +212,6 @@ class Note {
       const now = new Date().getTime();
       if (now - this.lastStyleChange < 10) return; //舍弃与上一次样式变化间隔小于10ms的事件
       this.lastStyleChange = now;
-
       if (this.syncStyle) {
         /**
          *若 syncStyle 为 true ，说明当前样式变化来源是同步控制器，因此不执行剩余代码
@@ -265,6 +271,14 @@ class Note {
     position[1] && (bodyElem.style.top = `${position[1]}px`);
     size[0] && (bodyElem.style.width = `${size[0]}px`);
     size[1] && (bodyElem.style.height = `${size[1]}px`);
+  }
+  top() {
+    const notes = [...document.querySelectorAll(".note")];
+    document.querySelectorAll(".note").forEach((note, k) => {
+      const thisIndex = parseInt(note.style.zIndex) || 0;
+      note.style.zIndex = thisIndex - 1;
+    });
+    this.noteBody.style.zIndex = notes.length;
   }
 }
 
