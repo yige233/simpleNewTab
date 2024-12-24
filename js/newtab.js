@@ -428,6 +428,9 @@ class Background {
   }
 }
 
+// 再一次修正标签页Title，避免后台没启动的情况下显示不出正确的title
+document.title = i18n("newTab.title");
+
 /** 当前的tab */
 const CURRENTTAB = await chrome.tabs.getCurrent();
 /** 配置控制器 */
