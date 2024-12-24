@@ -1,6 +1,6 @@
 import { Config } from "./config.js";
 import PICTURE from "./pictures.js";
-import { Messenger } from "./util.js";
+import { Messenger, StorageByCache, presetColors } from "./util.js";
 import i18n from "./lang/main.js";
 
 /** 电池信息 */
@@ -151,10 +151,30 @@ setPortHandler("chromeos-wallpaper-switch", setChromeOSWallpaper);
 
 self.addEventListener("message", getBatteryInfo);
 chrome.runtime.onStartup.addListener(() => createOffscreen());
-chrome.runtime.onInstalled.addListener((detail) => {
+chrome.runtime.onInstalled.addListener(async (detail) => {
+  const { version, homepage_url } = chrome.runtime.getManifest();
+  const CONFIG = await Config.init();
   if (["install", "update"].includes(detail.reason)) {
-    chrome.tabs.create({ url: "https://github.com/yige233/simpleNewTab#simplenewtab" });
-    Config.init().then((config) => config.save());
+    if (detail.reason == "install") {
+      chrome.tabs.create({ url: homepage_url });
+    }
+    if (detail.reason == "update" && detail.previousVersion != version) {
+      const STORAGE = new StorageByCache("cache-storage");
+      const config = CONFIG.config;
+      const notiId = "extension-updated";
+      if (!config.notes.includes(notiId)) {
+        config.notes.push(notiId);
+        CONFIG.$("config.notes", config.notes);
+      }
+      await STORAGE.set(`notes/${notiId}`, {
+        id: notiId,
+        title: i18n("updated"),
+        content: i18n("updateDesc").replace("{version}", version).replace("{homepage}", homepage_url),
+        color: presetColors[Math.floor(Math.random() * presetColors.length)],
+        size: [500, 275],
+      });
+    }
+    CONFIG.save();
   }
 });
 chrome.action.onClicked.addListener(() => chrome.tabs.create({ url: "../html/options.html" }));
