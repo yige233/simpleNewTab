@@ -154,13 +154,13 @@ chrome.runtime.onStartup.addListener(() => createOffscreen());
 chrome.runtime.onInstalled.addListener(async (detail) => {
   const { version, homepage_url } = chrome.runtime.getManifest();
   const CONFIG = await Config.init();
+  const config = CONFIG.config;
   if (["install", "update"].includes(detail.reason)) {
     if (detail.reason == "install") {
       chrome.tabs.create({ url: homepage_url });
     }
-    if (detail.reason == "update" && detail.previousVersion != version) {
+    if (detail.reason == "update" && detail.previousVersion != version && config.updateTip) {
       const STORAGE = new StorageByCache("cache-storage");
-      const config = CONFIG.config;
       const notiId = "extension-updated";
       if (!config.notes.includes(notiId)) {
         config.notes.push(notiId);
@@ -168,8 +168,8 @@ chrome.runtime.onInstalled.addListener(async (detail) => {
       }
       await STORAGE.set(`notes/${notiId}`, {
         id: notiId,
-        title: i18n("updated"),
-        content: i18n("updateDesc").replace("{version}", version).replace("{homepage}", homepage_url),
+        title: i18n("updateTip.name"),
+        content: i18n("updateTip.desc").replace("{version}", version).replace("{homepage}", homepage_url),
         color: presetColors[Math.floor(Math.random() * presetColors.length)],
         size: [500, 275],
       });

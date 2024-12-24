@@ -456,6 +456,12 @@ addItem({
   ],
 });
 addItem({
+  id: "update-tip",
+  name: i18n("config.updateTip.name"),
+  desc: i18n("config.updateTip.desc"),
+  contentElem: [card(checkbox(i18n("config.updateTip.status"), CONFIG.$("config.updateTip"), (checked) => CONFIG.$("config.updateTip", checked)))],
+});
+addItem({
   id: "edit-json",
   name: i18n("config.editJson.name"),
   desc: i18n("config.editJson.desc"),

@@ -28,6 +28,8 @@ export const configuration = {
   preferBing: false,
   /** 拖动敏感度 */
   dragSenstive: 10,
+  /** 更新提示 */
+  updateTip: true,
   /** 动画设置 */
   animation: {
     /** 动画延迟 */
