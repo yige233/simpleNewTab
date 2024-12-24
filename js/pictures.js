@@ -100,7 +100,7 @@ class Picture {
       const controller = new AbortController();
       const signal = controller.signal;
       const picIndex = Math.round(Math.random() * 8);
-      setTimeout(() => controller.abort(), 3e3); //控制超时时间
+      setTimeout(() => controller.abort("连接至bing超时"), 3e3); //控制超时时间
       const res = await fetch(`https://cn.bing.com/HPImageArchive.aspx?format=js&idx=${picIndex}&n=1`, {
         signal: signal,
       });

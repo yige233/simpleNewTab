@@ -1,6 +1,6 @@
 {
   "name": "__MSG_app_name__",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "__MSG_app_desc__",
   "permissions": ["commands", "alarms", "wallpaper", "offscreen"],
   "host_permissions": ["<all_urls>"],
@@ -20,7 +20,10 @@
   },
   "commands": {
     "newNote": {
-      "description": "__MSG_app_newNote__"
+      "description": "__MSG_app_newNote__",
+      "suggested_key": {
+        "default": "Alt+N"
+      }
     },
     "saveBgPos": {
       "description": "__MSG_app_saveBgPos__",

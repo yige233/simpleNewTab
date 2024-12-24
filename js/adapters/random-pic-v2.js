@@ -5,7 +5,7 @@ export default new ApiAdapter("randomPicV2", { collections: [] }, async function
     const controller = new AbortController();
     const signal = controller.signal;
     const { collections = [] } = this.config;
-    setTimeout(() => controller.abort(), 1000); //控制超时时间
+    setTimeout(() => controller.abort("连接至图像资源服务器超时"), 1000); //控制超时时间
     const res = await fetch(`${this.api}random-picture?collection=${collections.join("|")}`, {
       signal: signal,
     });
