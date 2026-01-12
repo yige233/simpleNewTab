@@ -20,6 +20,9 @@ const dialogDeleteNote = new Dialog(i18n("note.delete.question"));
 /** 便签信息同步 */
 const noteSync = new Messenger("noteSync");
 
+const cache = await caches.open("cache-storage");
+const userCss = await cache.match(new Request(`https://dummy/user.css`)).then((res) => res.text());
+
 /**
  * 如果target是函数，则执行并返回其返回值；否则返回其自身
  * @param {any} target 一个任意对象
@@ -74,7 +77,7 @@ function checkbox(desc, checked, onChange = () => null) {
 function inputElement(attributes, config) {
   const configValue = CONFIG.$(config);
   attributes.value = configValue;
-  const input = html("input", attributes, { input: () => CONFIG.$(config, attributes.type == "number" ? parseInt(input.value) : input.value) });
+  const input = html("input", attributes, { input: () => CONFIG.$(config, attributes.type == "number" ? parseFloat(input.value) : input.value) });
   return input;
 }
 /**
@@ -335,6 +338,12 @@ addItem({
         });
         tableNew.add(frameName, cssElem, buttonElem);
         return tableNew.table;
+      }),
+      card(html("h3", i18n("config.animation.userCSS.name")), () => {
+        const textarea = textareaELem({ style: "width:100%;height:500px", value: userCss || "" }, "config", async (value) => {
+          cache.put(new Request(`https://dummy/user.css`), new Response(value, { headers: { "Content-Type": "text/css" } }));
+        });
+        return textarea;
       }),
     ],
   });

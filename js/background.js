@@ -127,6 +127,8 @@ async function createAlarm() {
 }
 
 async function fetchHandler(event) {
+  const url = new URL(event.request.url);
+  const cache = await caches.open("cache-storage");
   //如果请求模式是navigate
   if (event.request.mode == "navigate") {
     try {
@@ -139,6 +141,9 @@ async function fetchHandler(event) {
     } catch {
       return fetch(event.request);
     }
+  }
+  if (url.host === "dummy") {
+    return (await cache.match(event.request.url)) || fetch(event.request);
   }
   return fetch(event.request);
 }
@@ -155,6 +160,8 @@ chrome.runtime.onInstalled.addListener(async (detail) => {
   const { version, homepage_url } = chrome.runtime.getManifest();
   const CONFIG = await Config.init();
   const config = CONFIG.config;
+  const cache = await caches.open("cache-storage");
+  cache.put(new Request(`https://dummy/user.css`), new Response("", { headers: { "Content-Type": "text/css" } }));
   if (["install", "update"].includes(detail.reason)) {
     if (detail.reason == "install") {
       chrome.tabs.create({ url: homepage_url });
